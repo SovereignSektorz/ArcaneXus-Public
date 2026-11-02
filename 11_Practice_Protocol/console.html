@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ArcaneXus Practice Protocol</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui;background:#10151d;color:#e7edf5}body{margin:0 auto;max-width:1050px;padding:22px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #354152;padding-bottom:14px}
+h1{font-size:22px;letter-spacing:.08em;margin:0}small,.muted{color:#9ba9ba}.pill{border:1px solid #53677f;border-radius:30px;padding:6px 10px}
+section{background:#182230;border:1px solid #354152;border-radius:12px;padding:16px;margin:16px 0}
+h2{font-size:17px;margin:0 0 12px}label{display:block;font-size:13px;color:#aebdce;margin:10px 0 5px}
+input,textarea,select{width:100%;box-sizing:border-box;background:#0e1621;color:#f2f6fb;border:1px solid #46576b;border-radius:7px;padding:10px;font:inherit}
+textarea{min-height:90px;font-family:ui-monospace,monospace}button{background:#d8e6f5;color:#111b27;border:0;border-radius:7px;padding:10px 14px;font-weight:700;cursor:pointer;margin:8px 8px 0 0}
+button.secondary{background:#34475d;color:#f0f5fb}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0c121b;padding:12px;border-radius:8px;max-height:280px;overflow:auto}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;border-bottom:1px solid #354152;padding:9px 6px;font-size:13px}
+.warning{color:#ffd58b}.good{color:#9be0b2}.bad{color:#ff9b9b}
+@media(max-width:680px){.grid{grid-template-columns:1fr}body{padding:12px}}
+</style></head><body>
+<header><div><h1>ARCANEXUS</h1><small>PRACTICE PROTOCOL · LOCAL CONTROL CONSOLE</small></div><span class="pill" id="health">Checking API…</span></header>
+<section><h2>Operating boundary</h2><p class="warning">This console records lifecycle events only. It does not authenticate the actor, validate policy references, run commands, change production state, control hardware, or grant permissions.</p><p class="muted">DEFINE → BOUND → EXECUTE → OBSERVE → VERIFY → CLASSIFY → CLOSE. Each retry is a new operation.</p><button class="secondary" onclick="refresh()">Refresh ledger</button></section>
+<section><h2>Define operation</h2><div class="grid">
+<div><label>Subsystem ID</label><input id="system" value="RealityKernel"></div>
+<div><label>Actor / authority reference</label><input id="actor" value="1121_ROOT"></div>
+</div><label>Atomic intention</label><input id="intent" placeholder="One bounded intention">
+<label>Success condition</label><input id="success" placeholder="What evidence proves success?">
+<label>Failure condition</label><input id="failure" placeholder="What observable result means failure?">
+<label>Parent operation ID (optional retry lineage)</label><input id="parent" placeholder="ANX-OP-...">
+<button onclick="defineOperation()">Create DEFINE event</button></section>
+<section><h2>Advance one lifecycle stage</h2><div class="grid">
+<div><label>Operation ID</label><input id="opid" placeholder="ANX-OP-..."></div>
+<div><label>Stage</label><select id="stage"><option>BOUND</option><option>EXECUTE</option><option>OBSERVE</option><option>VERIFY</option><option>CLASSIFY</option><option>CLOSE</option></select></div>
+</div><label>Stage data (JSON)</label><textarea id="payload">{"resources":["read-only-status"],"allowed_actions":["read-status"],"denied_actions":["production-write"],"lease_seconds":300}</textarea>
+<button onclick="advance()">Append stage event</button></section>
+<section><h2>Operations</h2><div id="ops" class="muted">No data loaded.</div></section>
+<section><h2>Result / evidence</h2><pre id="output">No action yet.</pre></section>
+<script>
+const $=id=>document.getElementById(id);
+async function api(path,method="GET",body=null){const r=await fetch(path,{method,headers:body?{"Content-Type":"application/json"}:{},body:body?JSON.stringify(body):undefined});const data=await r.json();if(!r.ok)throw new Error(data.error||("HTTP "+r.status));return data}
+function show(x){$("output").textContent=JSON.stringify(x,null,2)}
+async function refresh(){try{const h=await api("/api/v1/practice/health");$("health").textContent=h.status+" · "+h.execution;const d=await api("/api/v1/practice/operations");$("ops").innerHTML="<table><thead><tr><th>Operation</th><th>Subsystem</th><th>Current event</th></tr></thead><tbody>"+d.operations.map(o=>"<tr><td><a href='#' data-id='"+o.operation_id+"'>"+o.operation_id+"</a></td><td>"+(o.system_id||"—")+"</td><td>"+o.status+"</td></tr>").join("")+"</tbody></table>";document.querySelectorAll("[data-id]").forEach(a=>a.onclick=async e=>{e.preventDefault();$("opid").value=a.dataset.id;show(await api("/api/v1/practice/operations/"+a.dataset.id))});}catch(e){$("health").textContent="API offline";$("health").className="pill bad";show({error:e.message})}}
+async function defineOperation(){try{const x=await api("/api/v1/practice/operations","POST",{system_id:$("system").value,intent:$("intent").value,success_condition:$("success").value,failure_condition:$("failure").value,actor:$("actor").value,parent_operation_id:$("parent").value||null});$("opid").value=x.operation_id;show(x);await refresh()}catch(e){show({error:e.message})}}
+async function advance(){try{const data=JSON.parse($("payload").value);const x=await api("/api/v1/practice/operations/"+encodeURIComponent($("opid").value)+"/"+$("stage").value,"POST",{actor:$("actor").value,data});show(x);await refresh()}catch(e){show({error:e.message})}}
+refresh();
+</script></body></html>

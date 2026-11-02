@@ -1,0 +1,6 @@
+ARCANEXUS PUBLIC REFERENCE LICENSE v1.0
+Copyright (c) 2026 Michael Joseph Sandford. All rights reserved.
+
+The repository is publicly readable for reference and evaluation only. No permission is granted to use this material in production, modify or create derivative works, redistribute copies, sublicense, sell, lease, train commercial models on, or use the material to provide a competing service without a separate written license from the copyright holder.
+
+You may view the source through GitHub's web interface for personal evaluation. No patent license is granted. This is a source-available license, not an OSI-approved open-source license. Third-party components are governed by their own notices and licenses. If this license conflicts with applicable law, only the minimum conflicting provision is severed.
